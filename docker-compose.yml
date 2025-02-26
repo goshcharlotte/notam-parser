@@ -1,0 +1,31 @@
+name: 'ilab-notam'
+
+services:
+  mongo:
+    image: mongo
+    container_name: notam-db
+    volumes:
+      - notam-data:/data/db
+      - notam-config:/data/configdb
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+
+  mongo-express:
+    image: mongo-express
+    container_name: notam-web
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/admin
+      ME_CONFIG_BASICAUTH: false
+
+volumes:
+  notam-data: 
+    external: true
+  notam-config: 
+    external: true

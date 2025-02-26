@@ -20,6 +20,7 @@ docker compose up -d
 echo running ingestion script
 python3 ingest.py
 
-# run parse script
+echo running parse script
+python3 parse.py
 
-#docker compose down
+docker compose down

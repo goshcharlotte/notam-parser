@@ -1,0 +1,26 @@
+
+services:  
+  mongodb:
+    container_name: pibs_mongodb_daemon
+    env_file:
+      - ./.env
+    image: mongo:latest
+    ports:
+      - ${EXP_PORT}:27017
+      - 8081:8081
+    #restart: always
+    # volumes:
+    #    - db:/var/mongo/data
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${TEST_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${TEST_PASSWORD}
+      - MONGO_INITDB_DATABASE=${TEST_DB}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:${EXP_PORT}/${TEST_DB} --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db:
+    driver: local

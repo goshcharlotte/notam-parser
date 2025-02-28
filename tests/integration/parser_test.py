@@ -14,7 +14,6 @@ import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-# import lambda_function as database_pop
 import parse as parser_function  # noqa: E402
 
 

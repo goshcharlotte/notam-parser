@@ -8,9 +8,6 @@ services:
     ports:
       - ${EXP_PORT}:27017
       - 8081:8081
-    #restart: always
-    # volumes:
-    #    - db:/var/mongo/data
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${TEST_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${TEST_PASSWORD}

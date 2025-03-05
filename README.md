@@ -16,6 +16,8 @@ Add a local `.env` file that contains vars for Mongo setup:
 MONGO_USERNAME=notamadmin
 MONGO_PASSWORD=admin
 MONGO_INITDB_DATABASE=notam
+DB_COLLECTION='pib'
+DB_HOST='localhost'
 ```
 
 

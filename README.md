@@ -20,6 +20,13 @@ DB_COLLECTION='pib'
 DB_HOST='localhost'
 ```
 
+### Email service
+get an api key at https://app.mailslurp.com/sign-up
+and add the following to the above mentioned `.env
+```
+MAIL_API_KEY=<apikey>
+EMAIL_ADRESS=<...>
+```
 
 ## Docker Compose
 The `docker-compose.yml` file spins up two containers:

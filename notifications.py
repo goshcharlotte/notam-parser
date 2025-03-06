@@ -4,17 +4,23 @@ import pymongo
 from bson.json_util import dumps
 from bson.json_util import loads
 
-import json
+import asyncio
 import logging
 import os
-import requests
-import xmltodict  # type: ignore
+import mailslurp_client
+from mailslurp_client import CreateInboxDto
 from dotenv import load_dotenv
+
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
+async def send_notification(pib_id=None):
+    ''' Isolate notam notification by airport for emails'''
 
-def send_notification():
+    apt_code = 'LGW' ## hardcoded IATA airport code
 
     mongo_db_username, mongo_db_password, mongo_db_name, mongo_db_port, mongo_db_host, mongo_db_collection = get_mongo_credentials()
 
@@ -27,28 +33,12 @@ def send_notification():
     json_collection = db[f"{mongo_db_collection}"]
 
     # latest document inserted for projection
-    cursor = json_collection.find({}).sort({"_id": -1}).limit(1)
-
-    apt_code = 'LGW'
-
-    # print(doc[0])
+    cursor = json_collection.find({}).sort({"_id": -1}).limit(1) if pib_id is None else json_collection.find({'@PIBId' : pib_id})
     json_doc = loads(dumps(cursor))
-    notification_validity = json_doc[0].get('AreaPIBHeader')['Validity']
-    notification_issued_date = json_doc[0].get('AreaPIBHeader')['Issued']
-    notification_disclaimer = json_doc[0].get('MeteoDisclaimer')
     pib_id = json_doc[0].get('@PIBId')
-    # print(json_doc[0].get('@PIBType'))
-    # print(json_doc[0].get('AreaPIBHeader')['Validity'])
-
-    # print(f"pib_id: {pib_id}    {notification_issued_date}")
-    # print(
-    #     f"ValidFrom: {notification_validity['ValidFrom']}  => {notification_validity['ValidTo']}")
-    # print(notification_disclaimer)
-
-    # get_projection(json_collection, 'LGW')
-
-# def get_projection(json_collection : Any, apt_code: str):
-#     """Get notam warnings based on airport IATA code """
+    notam_validity = json_doc[0].get('AreaPIBHeader')['Validity']
+    notam_issued_date = json_doc[0].get('AreaPIBHeader')['Issued']
+    notam_disclaimer = json_doc[0].get('MeteoDisclaimer')
 
     filtered_airport = json_collection.aggregate([
         {'$unwind': "$AreaPIBHeader.AerodromeList.Aerodrome"},
@@ -60,8 +50,9 @@ def send_notification():
     ])
 
     json_ica0_doc = loads(dumps(filtered_airport))
-    icao_code = json_ica0_doc[0].get('FIRList')['FIR']['ICAO']  # expected EGTT
-    aerodrome_code = json_ica0_doc[0]['Code']  # expected EGKK
+    icao_code = json_ica0_doc[0].get(
+        'FIRList')['FIR']['ICAO']  # expected EGTT for LGW
+    aerodrome_code = json_ica0_doc[0]['Code']  # expected EGKK for LGW
 
     # get notams
     airport_notams = json_collection.aggregate([
@@ -94,6 +85,62 @@ def send_notification():
     json_notams_doc = loads(dumps(airport_notams))
     notam_list = json_notams_doc[0]['result'][0].get('NotamList')['Notam']
 
+    print(f'total notifications: {len(notam_list)}')
+    await send_email(notam_validity,notam_issued_date,notam_disclaimer, notam_list)
+
+
+async def send_email(notam_validity: Any,notam_issued_date: str,notam_disclaimer: str, notam_list: Any):
+    '''Send notams as html email'''
+
+    api_key = os.environ.get('MAIL_API_KEY')
+
+    # Send the email
+    configuration = mailslurp_client.Configuration()
+    configuration.api_key['x-api-key'] = api_key
+    with mailslurp_client.ApiClient(configuration) as api_client:
+        # create an inbox
+        inbox_controller = mailslurp_client.InboxControllerApi(api_client)
+        inbox = inbox_controller.create_inbox()
+
+        # create email html body
+        x = 1 # mailslurp_client inbox limit to 10 emails
+        for notam in notam_list:
+            subject = "Notam HTML Email without Attachment"
+            html = f"""\
+            <html>
+            <body>
+                <p>notam validity: {notam_validity['ValidFrom']} to {notam_validity['ValidTo']}</p>
+                <p>notam issued date:{notam_issued_date}</p>
+                <br>
+                <div>
+                Coordinates: {notam.get('Coordinates')}
+                Details: {notam.get('ItemE')}
+                </div>
+                <br>
+                <p>{notam_disclaimer}</p>
+            </body>
+            </html>
+            """
+
+            send_options = mailslurp_client.SendEmailOptions(
+                to=[os.environ.get('EMAIL_ADRESS')],
+                subject=subject,
+                body=html
+            )
+
+            # mailslurp_client inbox limit to 10 emails
+            if x <= 10: 
+                sent = inbox_controller.send_email_and_confirm(
+                    inbox_id=inbox.id, send_email_options=send_options
+                )
+
+                logging.info(
+                    (f"email sent for notam dated: {sent.sent_at}").encode(
+                        encoding="ascii", errors="xmlcharrefreplace"
+                    )
+                )
+                x = x + 1
+                print(f'email sent : {sent.sent_at}')
 
 
 def get_mongo_credentials() -> tuple[str, str, str, int, str, str]:
@@ -116,5 +163,7 @@ def get_mongo_credentials() -> tuple[str, str, str, int, str, str]:
     )
 
 
+coro = send_notification()
+
 if __name__ == "__main__":
-    send_notification()
+    asyncio.run(coro)

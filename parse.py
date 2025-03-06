@@ -1,18 +1,23 @@
 from typing import Any, OrderedDict
 from pymongo import MongoClient # type: ignore
 
+import asyncio
 import logging
 import os
 import requests
+import sys
 import xmltodict # type: ignore
 from dotenv import load_dotenv
+
+import notifications as notification_function  # noqa: E402
+
 load_dotenv()
 
 
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s")
 logging.getLogger().setLevel(logging.INFO)
 
-def run(args=None):
+async def run(args=None):
     """Function main method. """
     mongo_db_username, mongo_db_password, mongo_db_name, mongo_db_port, mongo_db_host, mongo_db_collection = get_mongo_credentials()
 
@@ -29,12 +34,14 @@ def run(args=None):
 
     if data['Pib'][xml_id_field] is not None:
         result = json_collection.replace_one({xml_id_field : data['Pib'][xml_id_field] }, data['Pib'],True)
-        print(f"{xml_id_field} : {data['Pib'][xml_id_field]} inserted... {result}")
+        id_value = data['Pib'][xml_id_field]
+        print(f"{xml_id_field} : {id_value} inserted... {result}")
         logging.info(
-            (f"{xml_id_field} : {data['Pib'][xml_id_field]} inserted...").encode(
+            (f"{xml_id_field} : {id_value} inserted...").encode(
                 encoding="ascii", errors="xmlcharrefreplace"
             )
         )
+        await notification_function.send_notification(id_value)
 
 def get_xml_data() -> OrderedDict[str, Any]:
     """Return xml data as dictionary. """
@@ -62,5 +69,7 @@ def get_mongo_credentials() -> tuple[str, str, str, int, str, str]:
         mongo_db_collection,
     )
 
+coro = run()
+
 if __name__ == "__main__":
-    run()
+    asyncio.run(coro)

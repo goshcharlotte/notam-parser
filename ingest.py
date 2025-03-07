@@ -31,4 +31,4 @@ print(mongo_client.list_database_names())
 print(notam_db.list_collection_names())
 
 # for testing: retrieve latest dump from collection
-pprint.pprint(notam_db.datadumps.find_one(sort=[('retrieved', pymongo.DESCENDING)]))
+# pprint.pprint(notam_db.datadumps.find_one(sort=[('retrieved', pymongo.DESCENDING)]))

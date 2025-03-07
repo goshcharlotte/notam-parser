@@ -21,6 +21,13 @@ DB_COLLECTION='pib'
 DB_HOST='localhost'
 ```
 
+### Email service
+get an api key at https://app.mailslurp.com/sign-up
+and add the following to the above mentioned `.env
+```
+MAIL_API_KEY=<apikey>
+EMAIL_ADRESS=<...>
+```
 
 ## Docker Compose
 The `docker-compose.yml` file spins up two containers:
@@ -51,4 +58,5 @@ This is intended for use in the hourly scheduled cron job but can also be useful
 
 ## TODO
 - retrieve the `Issued` field from within the xml data dump and compare it to the previous latest data dump - don't save the newer one if it was issued at the same time
-- parse xml data dump into db in `parse.py' script
+- ~~parse xml data dump into db in `parse.py' script~~
+- use mapping library to add map with markers to html email notification 

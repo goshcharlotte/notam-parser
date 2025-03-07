@@ -60,3 +60,4 @@ This is intended for use in the hourly scheduled cron job but can also be useful
 - retrieve the `Issued` field from within the xml data dump and compare it to the previous latest data dump - don't save the newer one if it was issued at the same time
 - ~~parse xml data dump into db in `parse.py' script~~
 - use mapping library to add map with markers to html email notification 
+- trigger parse and ingestion separately: add logic to only trigger parse when a new file has been ingested

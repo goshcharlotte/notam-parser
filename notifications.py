@@ -15,6 +15,12 @@ from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+import folium
+from nicegui import ui
+from pyproj import crs
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
 load_dotenv()
 
 async def send_notification(pib_id=None):
@@ -94,6 +100,18 @@ async def send_email(notam_validity: Any,notam_issued_date: str,notam_disclaimer
 
     api_key = os.environ.get('MAIL_API_KEY')
 
+    m = folium.Map(location=[32.3, 295.21], zoom_start=10, control_scale=True) ##  hardcoded location
+    # with ui.card():
+    #     map_width = 600
+    #     map_height = 300
+    #     m = folium.Map(location=[32.3, 295.21], width=map_width, height=map_height)
+    #     m.get_root().width = f"{map_width}px"
+    #     m.get_root().height = f"{map_height}px"
+    #     iframe = m.get_root()._repr_html_()
+    #     ui.html(iframe).classes("w-full h-full")
+
+    #" 5058 N 00209 W"
+
     # Send the email
     configuration = mailslurp_client.Configuration()
     configuration.api_key['x-api-key'] = api_key
@@ -111,13 +129,15 @@ async def send_email(notam_validity: Any,notam_issued_date: str,notam_disclaimer
             <body>
                 <p>notam validity: {notam_validity['ValidFrom']} to {notam_validity['ValidTo']}</p>
                 <p>notam issued date:{notam_issued_date}</p>
-                <br>
-                <div>
-                Coordinates: {notam.get('Coordinates')}
-                Details: {notam.get('ItemE')}
+                <div>                
+                    <p>{notam_disclaimer}</p>
                 </div>
-                <br>
-                <p>{notam_disclaimer}</p>
+                <div>
+                    <p>Coordinates: {notam.get('Coordinates')}</p>
+                    <p>Details: {notam.get('ItemE')}</p>
+                    <br>
+                </div>
+                <div style='width: 30em; height: 10em;'>{m.get_root()._repr_html_()}</div>
             </body>
             </html>
             """

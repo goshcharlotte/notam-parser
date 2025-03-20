@@ -1,0 +1,89 @@
+
+{% extends 'base.html' %}
+{% from 'folium_macro.html' import map_macro with context %}
+
+{% block content %}
+
+    {%set ns = namespace(iterator = 0) %}
+    {%for notam in notam_list%}
+        {%set coordinates_string = notam.get('Coordinates')%}
+        {%set start = 0%}
+        {%set end = 1000%}
+        {%set north_string_pos = coordinates_string.index('N', start, end)%}
+        {%set west_string_pos = coordinates_string.index('W', start, end)%}
+
+        {%set north_coordinates = coordinates_string[start:north_string_pos]|int /100%}
+        {%set west_coordinates = coordinates_string[(north_string_pos+1):west_string_pos]|int /100%}
+        {%set m = folium.Map(location=[north_coordinates, west_coordinates], zoom_start=10, control_scale=True)%}
+        {%set k = folium.Marker(location=[north_coordinates, west_coordinates]).add_to(m)%}
+        {%set apt_icon=folium.DivIcon(html="<div><svg><circle cx='50' cy='50' r='50' fill='#69b3a2' opacity='.4'/></svg></div>")%}
+        {%set html="""<h5>LGW</h5>"""%}
+        {%set iframe = folium.IFrame(html=html, width=100, height=50)%}
+        {%set apt_popup = folium.Popup(iframe, max_width=50)%}
+        {%set y = folium.Marker(location=[apt_coordinates[0],apt_coordinates[1]], popup=apt_popup, icon=apt_icon).add_to(m)%}
+        {%set ns.iterator = ((ns.iterator|int + 1)|int) *1 %}
+        <div class="item">
+            <div class="item-container">
+                <div class="item-container--left">
+                    <div class="item-detail">
+                        <div class="item-detail--header">Coordinates:</div> 
+                        <div>{{north_coordinates}}&deg; North  {{west_coordinates}}&deg; West</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Radius:</div>
+                        <div>{{ notam.get('Radius') }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Type:</div> 
+                        <div>{{ notam.get('Type') }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Start:</div> 
+                        <div>{{ notam.get('StartValidity') }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">End:</div>
+                        <div>{{ notam.get('EndValidity') }}</div>
+                    </div>
+
+                    <div class="item-detail">
+                        <div class="item-detail--header">Code23:</div>
+                        <div>{{ notam.get('QLine')['Code23'] }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Code45:</div>
+                        <div>{{ notam.get('QLine')['Code45']  }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Traffic:</div>
+                        <div>{{ notam.get('QLine')['Traffic']  }}</div>
+                    </div>
+
+                    <div class="item-detail">
+                        <div class="item-detail--header">Purpose:</div>
+                        <div>{{ notam.get('QLine')['Purpose']  }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Scope:</div>
+                        <div>{{ notam.get('QLine')['Scope']  }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Lower:</div>
+                        <div>{{ notam.get('QLine')['Lower']  }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Upper:</div>
+                        <div>{{ notam.get('QLine')['Upper']  }}</div>
+                    </div>
+                    <div class="item-detail">
+                        <div class="item-detail--header">Details:</div>
+                        <div>{{ notam.get('ItemE') }}</div>
+                    </div>
+                </div>             
+                {{ map_macro(m) | safe }}                
+            </div>
+            <div class="item-counter">item {{ns.iterator | safe }} of {{notam_len}}</div>
+        </div>
+    {%endfor%}
+
+{% endblock %}

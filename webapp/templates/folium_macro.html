@@ -1,0 +1,5 @@
+{% macro map_macro(folium_map) -%}
+<div class='item-container--right'>
+    {{ folium_map.get_root()._repr_html_() | safe }}
+</div>
+{%- endmacro %}

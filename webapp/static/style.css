@@ -11,10 +11,14 @@
   font-weight: bolder;
 }
 .item-container--left {
-  max-width: 30%;
+  max-width: 40%;
+  width: 40%;
   display: flex;
   flex-direction: column;
   align-content: space-between;
+  overflow-y: scroll;
+  height: 35em;
+  margin-right: 1em;
 }
 .item-container--right {
   max-width: 70%;
@@ -38,13 +42,33 @@ h1,
   font-weight: bolder;
   padding-left: 0.3em;
 }
+.item-title{
+  font-weight: bold;
+    text-align: center;
+    margin-bottom: 0.5em;
+}
+.nav-header{
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  align-content: space-between;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 0.5em;
+
+  gap: 10px;
+  gap: 10px 50%; /* row-gap column gap */
+  row-gap: 10px;
+  column-gap: 50%;
+}
 .header {
   display: flex;
   flex-direction: column;
   text-align: center;
   align-items: center;
   justify-content: center;
-  padding-bottom: 3em;
+  padding-bottom: 1em;
 }
 .footer {
   display: flex;
@@ -66,7 +90,7 @@ h1,
     font-weight: 900;
     font-size: x-large;
     position: relative;
-    padding-top: 20%;
+    padding-top: 10%;
     text-decoration: underline;
     text-underline-offset: 1rem;
 }
@@ -77,4 +101,56 @@ h1,
     flex-direction: row;
     gap: 0.5em;
     padding-bottom: 0.5em;
+}
+.links-container{
+  display: flex;
+  flex-direction: column;
+  align-content: space-between;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 3em;
+  height:35em;
+  max-height: 35em;
+  overflow-y: scroll;
+  padding-top: 5em;
+  margin-top: 5em;
+}
+.link{
+  /* padding: 0.5em; */
+  margin: 0.9em;
+}
+.link > a{
+  font-weight: 600;
+}
+.link > a:hover{
+  text-decoration: none;
+  color: #ffffff;
+}
+.link:hover{
+  background-color: gray;
+  padding: 0 0.8em;
+  border-top-left-radius: 0.8em;
+  border-bottom-left-radius: 0.8em;
+  border-top-right-radius: 0.8em;
+  border-bottom-right-radius: 0.8em;
+}
+
+.accordion-button{
+  width: 100%;
+  background-color: #cfe2ff;
+  border-width: thin;
+}
+.notam-details{
+  width: 100%;
+}
+.accordion-body--odd{
+  background-color: #e8e8e84f;
+}
+.body{
+  max-height: max-content;
+  height: 700px;
+}
+.main-container{
+  height: 100%;
 }

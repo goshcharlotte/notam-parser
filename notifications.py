@@ -56,7 +56,7 @@ async def send_notification(pib_id=None):
 
     json_ica0_doc = loads(dumps(filtered_airport))
     icao_code = json_ica0_doc[0].get(
-        'FIRList')['FIR']['ICAO']  # expected EGTT for LGW
+        'FIRList')['FIR']['ICAO']  # expected EGTT for LONDON FIR
     aerodrome_code = json_ica0_doc[0]['Code']  # expected EGKK for LGW
 
     # get notams

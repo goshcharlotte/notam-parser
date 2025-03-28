@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <!-- note the special href for files in the Flask "static" folder -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <title>NOTAM Home</title>
+
+</head>
+
+<body class="body">
+    <div id="container" class="main-container">
+        <div class="header">
+            <h1>Latest NOTAMS</h1>
+        </div>
+
+        <div class="container">
+            <div class="links-container">
+                    {% for each in notifications %}
+                        <div class="link"><a href="/notam/{{each['id']}}">notam {{each['valid_from']}} to {{each['valid_to']}}</a></div>
+                    {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+    <div class="footer">
+        <div class="disclaimer">{{notam_disclaimer}}</div>
+        <div>Copyright &copy; {{year}} | AndDigital</div>
+    </div>
+</body>
+
+</html>

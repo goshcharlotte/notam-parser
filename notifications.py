@@ -103,8 +103,6 @@ async def send_email(pib_id: str, apt_code: str, notam_validity: Any,notam_issue
     api_key = os.environ.get('MAIL_API_KEY')
 
     # Send the email
-    configuration = mailslurp_client.Configuration()
-    configuration.api_key['x-api-key'] = api_key
     email_style = """<style>
     @media screen and (max-width: 600px) {
         .content {

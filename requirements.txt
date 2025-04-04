@@ -7,4 +7,5 @@ folium==0.19.5
 matplotlib==3.10.1
 pyproj==3.7.1
 geopandas==1.0.1
-nicegui
+brevo_python==1.1.2
+sib_api_v3_sdk==7.6.0

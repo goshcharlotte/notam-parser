@@ -8,16 +8,19 @@ from bson.json_util import loads
 import asyncio
 import logging
 import os
-import mailslurp_client
-from mailslurp_client import CreateInboxDto
 from dotenv import load_dotenv
 
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-import folium
 import datetime
+import brevo_python 
+
+import brevo_python
+from brevo_python.rest import ApiException
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
 
 load_dotenv()
@@ -25,7 +28,7 @@ load_dotenv()
 async def send_notification(pib_id=None):
     ''' Isolate notam notification by airport for emails'''
 
-    apt_code = 'LGW' ## hardcoded IATA airport code
+    apt_code = 'GLA' ## hardcoded IATA airport code
 
     mongo_db_username, mongo_db_password, mongo_db_name, mongo_db_port, mongo_db_host, mongo_db_collection = get_mongo_credentials()
 
@@ -91,10 +94,10 @@ async def send_notification(pib_id=None):
     notam_list = json_notams_doc[0]['result'][0].get('NotamList')['Notam']
 
     print(f'total notifications: {len(notam_list)}')
-    await send_email(apt_code, notam_validity,notam_issued_date,notam_disclaimer, notam_list)
+    await send_email(pib_id,apt_code, notam_validity,notam_issued_date,notam_disclaimer, notam_list)
 
 
-async def send_email(apt_code: str, notam_validity: Any,notam_issued_date: str,notam_disclaimer: str, notam_list: Any):
+async def send_email(pib_id: str, apt_code: str, notam_validity: Any,notam_issued_date: str,notam_disclaimer: str, notam_list: Any):
     '''Send notams as html email'''
 
     api_key = os.environ.get('MAIL_API_KEY')
@@ -117,112 +120,92 @@ async def send_email(apt_code: str, notam_validity: Any,notam_issued_date: str,n
     today = datetime.date.today()
     year = today.strftime("%Y")
     issued_date = datetime.datetime.fromisoformat(notam_issued_date)
+    subject = f"{apt_code} Notam {issued_date.strftime('%d/%m/%Y, %H:%M:%S')}"
+    print(subject)
 
-    with mailslurp_client.ApiClient(configuration) as api_client:
-        # create an inbox
-        inbox_controller = mailslurp_client.InboxControllerApi(api_client)
-        inbox = inbox_controller.create_inbox()
 
-        # create email html body
-        x = 1 # mailslurp_client inbox limit to 10 emails
-        for notam in notam_list:
-            subject = f"{apt_code} Notam {issued_date}"
+    html = f"""\
+    <!DOCTYPE html>
+    <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <link rel='preconnect' href='https://fonts.googleapis.com'>
+            <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+            <link href='https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap' rel='stylesheet'>
+            <title>{subject}</title>
+        </head>
+        <body style='font-family: "Poppins", Arial, sans-serif;'>
+            <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                <tr>
+                    <td align='center' style='padding: 20px;'>
+                        <table class='content' width='600' border='0' cellspacing='0' cellpadding='0' style='border-collapse: collapse; border: 1px solid #cccccc;'>
+                            <!-- Header -->
+                            <tr>
+                                <td class='header' style='background-color: #345C72; padding: 40px; text-align: center; color: white; font-size: 24px;'>
+                                {subject}
+                                </td>
+                            </tr>
 
-            coordinates_string = notam.get('Coordinates')
-            start = 0
-            end = 1000
-            north_string_pos = coordinates_string.index('N', start, end)
-            west_string_pos = coordinates_string.index('W', start, end)
+                            <tr  class='body' style='padding-top: 30px; padding-bottom: 30px; margin-top: 10px; margin-bottom: 10px;'>
+                                <td style='padding-top: 30px; padding-bottom: 30px; margin-top: 10px; margin-bottom: 10px;'>
+                                <a href='http://localhost:5002/notam/{pib_id}'>Full notifications for {apt_code} airport</a>
+                                </td>
+                            </tr>
 
-            north_coordinates = int(coordinates_string[start:north_string_pos])/ 100
-            west_coordinates= int(coordinates_string[(north_string_pos+1):west_string_pos])/ 100
+                            <!-- Body -->
 
-            m = folium.Map(location=[north_coordinates, west_coordinates], zoom_start=10, tiles="cartodb positron", control_scale=True) # location
-            folium.Marker(
-                location=[north_coordinates, west_coordinates], popup=notam.get('ItemE')
-            ).add_to(m)
+                            <!-- Call to action Button -->
 
-            html = f"""\
-            <!DOCTYPE html>
-            <html lang='en'>
-                <head>
-                    <meta charset='UTF-8'>
-                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                    <link rel='preconnect' href='https://fonts.googleapis.com'>
-                    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
-                    <link href='https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap' rel='stylesheet'>
-                    <title>{subject}</title>
-                </head>
-                <body style='font-family: "Poppins", Arial, sans-serif;'>
-                    <table width='100%' border='0' cellspacing='0' cellpadding='0'>
-                        <tr>
-                            <td align='center' style='padding: 20px;'>
-                                <table class='content' width='600' border='0' cellspacing='0' cellpadding='0' style='border-collapse: collapse; border: 1px solid #cccccc;'>
-                                    <!-- Header -->
-                                    <tr>
-                                        <td class='header' style='background-color: #345C72; padding: 40px; text-align: center; color: white; font-size: 24px;'>
-                                        {subject}
-                                        </td>
-                                    </tr>
+                            <!-- Footer -->
+                            <tr>
+                                <td class='footer' style='background-color: #333333; padding: 40px; text-align: center; color: white; font-size: 14px;'>
+                                {notam_disclaimer}
+                                <br><br>
+                                Copyright &copy; {year} | AndDigital
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+    """
 
-                                    <tr>
-                                        <td>
-                                        <a href='http://localhost:5002/notam/400000095905790'>click here full notifications</a>
-                                        </td>
-                                    </tr>
+    brevo_api_key = os.environ.get('BREVO_API')
+    # Configure API key authorization: api-key
+    configuration = brevo_python.Configuration()
+    configuration.api_key['api-key'] = brevo_api_key
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    # configuration.api_key_prefix['api-key'] = 'Bearer'
+    # Configure API key authorization: partner-key
+    configuration = brevo_python.Configuration()
+    configuration.api_key['partner-key'] = brevo_api_key
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    # configuration.api_key_prefix['partner-key'] = 'Bearer'
+    # api_instance = brevo_python.AccountApi(brevo_python.ApiClient(configuration))
+    try:
+        configuration = sib_api_v3_sdk.Configuration()
+        configuration.api_key['api-key'] =  brevo_api_key
+        # Get your account information, plan and credits details
+        to= [{"email":'xxxx@and.digital',"name":"Jane Doe"}]
+        ##bcc= [{"email":'xxx@and.digital',"name":"Jane Doe"}] 
+        ##cc= [{"email":'xxx@and.digital',"name":"Jane Doe"}] 
+        ##reply_to= [{"email":'xxx@and.digital',"name":"Jane Doe"}]
+        headers = {"Some-Custom-Name":"unique-id-1234"}
 
-                                    <!-- Body -->
-                                    <tr>
-                                        <td class='body' style='padding: 40px; text-align: left; font-size: 16px; line-height: 1.6;'>
-                                            <p>notam validity: {notam_validity['ValidFrom']} to {notam_validity['ValidTo']}</p>
-                                            <p>notam issued date:{notam_issued_date}</p>
-                                            <p>North : {north_coordinates} West : {west_coordinates}</p>
-                                            <p>Details: {notam.get('ItemE')}</p>
-                                        </td>
-                                    </tr>
+        email_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+        subject = subject
+        sender = {"name":"APT Notam","email":"xxx@and.digital"}
+        html_content = html
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(to=to,
+        headers=headers, html_content=html_content, sender=sender, subject=subject) # SendSmtpEmail | Values to send a transactional email
+        email_api_response = email_api_instance.send_transac_email(send_smtp_email)
+        print(email_api_response)
 
-                                    <!-- Call to action Button -->
-
-                                    <tr>
-                                        <td class='body' style='padding: 40px; text-align: left; font-size: 16px; line-height: 1.6;'>
-                                            <div style='width: 30em; height: 10em; margin-left: auto; margin-right: auto; padding-bottom: 8em'>{m.get_root()._repr_html_()}</div>            
-                                        </td>
-                                    </tr>
-                                    <!-- Footer -->
-                                    <tr>
-                                        <td class='footer' style='background-color: #333333; padding: 40px; text-align: center; color: white; font-size: 14px;'>
-                                        {notam_disclaimer}
-                                        <br><br>
-                                        Copyright &copy; {year} | AndDigital
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                </body>
-            </html>
-            """
-
-            send_options = mailslurp_client.SendEmailOptions(
-                to=[os.environ.get('EMAIL_ADRESS')],
-                subject=subject,
-                body=html
-            )
-
-            # mailslurp_client inbox limit to 10 emails
-            if x <= 10: 
-                sent = inbox_controller.send_email_and_confirm(
-                    inbox_id=inbox.id, send_email_options=send_options
-                )
-
-                logging.info(
-                    (f"email sent for notam dated: {sent.sent_at}").encode(
-                        encoding="ascii", errors="xmlcharrefreplace"
-                    )
-                )
-                x = x + 1
-                print(f'email sent : {sent.sent_at}')
+    except ApiException as e:
+        print("Exception when calling AccountApi->get_account: %s\n" % e)
 
 
 def get_mongo_credentials() -> tuple[str, str, str, int, str, str]:

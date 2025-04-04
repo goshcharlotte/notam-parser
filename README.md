@@ -27,6 +27,10 @@ and add the following to the above mentioned `.env
 ```
 MAIL_API_KEY=<apikey>
 EMAIL_ADRESS=<...>
+
+alternatively you can also use brevo:
+https://developers.brevo.com/
+https://developers.brevo.com/reference/sendtransacemail
 ```
 
 ## Docker Compose
@@ -57,7 +61,8 @@ This is intended for use in the hourly scheduled cron job but can also be useful
 
 
 ## TODO
+- implement notams based on obstacles and poligon markers on folium maps (/TODO/Proposed_Updates_Demo_Airfield_Portal_POCs.eml)
 - ~~retrieve the `Issued` field from within the xml data dump and compare it to the previous latest data dump - don't save the newer one if it was issued at the same time~~
 - ~~parse xml data dump into db in `parse.py' script~~
 - ~~use mapping library to add map with markers to html email notification~~ 
-- trigger parse and ingestion separately: add logic to only trigger parse when a new file has been ingested
+- ~~trigger parse and ingestion separately: add logic to only trigger parse when a new file has been ingested~~ not necessary, as parsing is set to update if file has same pid

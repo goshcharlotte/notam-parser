@@ -184,12 +184,12 @@
 
                     {%set ns.iterator = ((ns.iterator|int + 1)|int) *1 %}
                     <div class="accordion-item">
-                        <h5 class="accordion-header" id="panelsStayOpen-heading{{ns.iterator}}">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ns.iterator}}" aria-expanded="true" aria-controls="panelsStayOpen-collapse{{ns.iterator}}">
+                        <h5 class="accordion-header" id="panelsStayOpenWarning-heading{{ns.iterator}}">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpenWarning-collapse{{ns.iterator}}" aria-expanded="true" aria-controls="panelsStayOpenWarning-collapse{{ns.iterator}}">
                             Warning #{{ns.iterator}}
                             </button>
                         </h5>
-                        <div id="panelsStayOpen-collapse{{ns.iterator}}" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-heading{{ns.iterator}}">
+                        <div id="panelsStayOpenWarning-collapse{{ns.iterator}}" class="accordion-collapse collapse" aria-labelledby="panelsStayOpenWarning-heading{{ns.iterator}}">
                             <div class="accordion-body {{ loop.cycle('accordion-body--even', 'accordion-body--odd') }}">
                                 <div class="notam-details">
                                     <div class="item-detail">
@@ -326,12 +326,12 @@
 
                     {%set ns.iterator = ((ns.iterator|int + 1)|int) *1 %}
                     <div class="accordion-item">
-                        <h5 class="accordion-header" id="panelsStayOpen-heading{{ns.iterator}}">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ns.iterator}}" aria-expanded="true" aria-controls="panelsStayOpen-collapse{{ns.iterator}}">
+                        <h5 class="accordion-header" id="panelsStayOpenRoute-heading{{ns.iterator}}">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpenRoute-collapse{{ns.iterator}}" aria-expanded="true" aria-controls="panelsStayOpenRoute-collapse{{ns.iterator}}">
                             Route notifications #{{ns.iterator}}
                             </button>
                         </h5>
-                        <div id="panelsStayOpen-collapse{{ns.iterator}}" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-heading{{ns.iterator}}">
+                        <div id="panelsStayOpenRoute-collapse{{ns.iterator}}" class="accordion-collapse collapse" aria-labelledby="panelsStayOpenRoute-heading{{ns.iterator}}">
                             <div class="accordion-body {{ loop.cycle('accordion-body--even', 'accordion-body--odd') }}">
                                 <div class="notam-details">
                                     <div class="item-detail">

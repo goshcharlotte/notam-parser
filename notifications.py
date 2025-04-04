@@ -1,3 +1,4 @@
+import time
 from typing import Any, OrderedDict
 from pymongo import MongoClient  # type: ignore
 import pymongo
@@ -7,20 +8,27 @@ from bson.json_util import loads
 import asyncio
 import logging
 import os
-import mailslurp_client
-from mailslurp_client import CreateInboxDto
 from dotenv import load_dotenv
 
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+import datetime
+import brevo_python 
+
+import brevo_python
+from brevo_python.rest import ApiException
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+
+
 load_dotenv()
 
 async def send_notification(pib_id=None):
     ''' Isolate notam notification by airport for emails'''
 
-    apt_code = 'LGW' ## hardcoded IATA airport code
+    apt_code = 'GLA' ## hardcoded IATA airport code
 
     mongo_db_username, mongo_db_password, mongo_db_name, mongo_db_port, mongo_db_host, mongo_db_collection = get_mongo_credentials()
 
@@ -51,7 +59,7 @@ async def send_notification(pib_id=None):
 
     json_ica0_doc = loads(dumps(filtered_airport))
     icao_code = json_ica0_doc[0].get(
-        'FIRList')['FIR']['ICAO']  # expected EGTT for LGW
+        'FIRList')['FIR']['ICAO']  # expected EGTT for LONDON FIR
     aerodrome_code = json_ica0_doc[0]['Code']  # expected EGKK for LGW
 
     # get notams
@@ -86,61 +94,116 @@ async def send_notification(pib_id=None):
     notam_list = json_notams_doc[0]['result'][0].get('NotamList')['Notam']
 
     print(f'total notifications: {len(notam_list)}')
-    await send_email(notam_validity,notam_issued_date,notam_disclaimer, notam_list)
+    await send_email(pib_id,apt_code, notam_validity,notam_issued_date,notam_disclaimer, notam_list)
 
 
-async def send_email(notam_validity: Any,notam_issued_date: str,notam_disclaimer: str, notam_list: Any):
+async def send_email(pib_id: str, apt_code: str, notam_validity: Any,notam_issued_date: str,notam_disclaimer: str, notam_list: Any):
     '''Send notams as html email'''
 
     api_key = os.environ.get('MAIL_API_KEY')
 
     # Send the email
-    configuration = mailslurp_client.Configuration()
-    configuration.api_key['x-api-key'] = api_key
-    with mailslurp_client.ApiClient(configuration) as api_client:
-        # create an inbox
-        inbox_controller = mailslurp_client.InboxControllerApi(api_client)
-        inbox = inbox_controller.create_inbox()
+    email_style = """<style>
+    @media screen and (max-width: 600px) {
+        .content {
+            width: 100% !important;
+            display: block !important;
+            padding: 10px !important;
+        }
+        .header, .body, .footer {
+            padding: 20px !important;
+        }
+    }
+    </style>"""
+    today = datetime.date.today()
+    year = today.strftime("%Y")
+    issued_date = datetime.datetime.fromisoformat(notam_issued_date)
+    subject = f"{apt_code} Notam {issued_date.strftime('%d/%m/%Y, %H:%M:%S')}"
+    print(subject)
 
-        # create email html body
-        x = 1 # mailslurp_client inbox limit to 10 emails
-        for notam in notam_list:
-            subject = "Notam HTML Email without Attachment"
-            html = f"""\
-            <html>
-            <body>
-                <p>notam validity: {notam_validity['ValidFrom']} to {notam_validity['ValidTo']}</p>
-                <p>notam issued date:{notam_issued_date}</p>
-                <br>
-                <div>
-                Coordinates: {notam.get('Coordinates')}
-                Details: {notam.get('ItemE')}
-                </div>
-                <br>
-                <p>{notam_disclaimer}</p>
-            </body>
-            </html>
-            """
 
-            send_options = mailslurp_client.SendEmailOptions(
-                to=[os.environ.get('EMAIL_ADRESS')],
-                subject=subject,
-                body=html
-            )
+    html = f"""\
+    <!DOCTYPE html>
+    <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <link rel='preconnect' href='https://fonts.googleapis.com'>
+            <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+            <link href='https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap' rel='stylesheet'>
+            <title>{subject}</title>
+        </head>
+        <body style='font-family: "Poppins", Arial, sans-serif;'>
+            <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                <tr>
+                    <td align='center' style='padding: 20px;'>
+                        <table class='content' width='600' border='0' cellspacing='0' cellpadding='0' style='border-collapse: collapse; border: 1px solid #cccccc;'>
+                            <!-- Header -->
+                            <tr>
+                                <td class='header' style='background-color: #345C72; padding: 40px; text-align: center; color: white; font-size: 24px;'>
+                                {subject}
+                                </td>
+                            </tr>
 
-            # mailslurp_client inbox limit to 10 emails
-            if x <= 10: 
-                sent = inbox_controller.send_email_and_confirm(
-                    inbox_id=inbox.id, send_email_options=send_options
-                )
+                            <tr  class='body' style='padding-top: 30px; padding-bottom: 30px; margin-top: 10px; margin-bottom: 10px;'>
+                                <td style='padding-top: 30px; padding-bottom: 30px; margin-top: 10px; margin-bottom: 10px;'>
+                                <a href='http://localhost:5002/notam/{pib_id}'>Full notifications for {apt_code} airport</a>
+                                </td>
+                            </tr>
 
-                logging.info(
-                    (f"email sent for notam dated: {sent.sent_at}").encode(
-                        encoding="ascii", errors="xmlcharrefreplace"
-                    )
-                )
-                x = x + 1
-                print(f'email sent : {sent.sent_at}')
+                            <!-- Body -->
+
+                            <!-- Call to action Button -->
+
+                            <!-- Footer -->
+                            <tr>
+                                <td class='footer' style='background-color: #333333; padding: 40px; text-align: center; color: white; font-size: 14px;'>
+                                {notam_disclaimer}
+                                <br><br>
+                                Copyright &copy; {year} | AndDigital
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+    """
+
+    brevo_api_key = os.environ.get('BREVO_API')
+    # Configure API key authorization: api-key
+    configuration = brevo_python.Configuration()
+    configuration.api_key['api-key'] = brevo_api_key
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    # configuration.api_key_prefix['api-key'] = 'Bearer'
+    # Configure API key authorization: partner-key
+    configuration = brevo_python.Configuration()
+    configuration.api_key['partner-key'] = brevo_api_key
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    # configuration.api_key_prefix['partner-key'] = 'Bearer'
+    # api_instance = brevo_python.AccountApi(brevo_python.ApiClient(configuration))
+    try:
+        configuration = sib_api_v3_sdk.Configuration()
+        configuration.api_key['api-key'] =  brevo_api_key
+        # Get your account information, plan and credits details
+        to= [{"email":'xxxx@and.digital',"name":"Jane Doe"}]
+        ##bcc= [{"email":'xxx@and.digital',"name":"Jane Doe"}] 
+        ##cc= [{"email":'xxx@and.digital',"name":"Jane Doe"}] 
+        ##reply_to= [{"email":'xxx@and.digital',"name":"Jane Doe"}]
+        headers = {"Some-Custom-Name":"unique-id-1234"}
+
+        email_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+        subject = subject
+        sender = {"name":"APT Notam","email":"xxx@and.digital"}
+        html_content = html
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(to=to,
+        headers=headers, html_content=html_content, sender=sender, subject=subject) # SendSmtpEmail | Values to send a transactional email
+        email_api_response = email_api_instance.send_transac_email(send_smtp_email)
+        print(email_api_response)
+
+    except ApiException as e:
+        print("Exception when calling AccountApi->get_account: %s\n" % e)
 
 
 def get_mongo_credentials() -> tuple[str, str, str, int, str, str]:
